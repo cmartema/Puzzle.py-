@@ -6,6 +6,7 @@ import sys
 import math
 import time
 import queue as Q
+import resource
 
 
 #### SKELETON CODE ####
@@ -38,6 +39,7 @@ class PuzzleState(object):
         # Get the index and (row, col) of empty block
         self.blank_index = self.config.index(0)
 
+
     def display(self):
         """ Display this Puzzle state as a n*n board """
         for i in range(self.n):
@@ -53,7 +55,7 @@ class PuzzleState(object):
             new_blank_index = self.blank_index - self.n
             config_copy[self.blank_index], config_copy[new_blank_index] = config_copy[new_blank_index],config_copy[self.blank_index]
 
-            return PuzzleState(config_copy, self.n, self.config,"Up", self.cost + 1)
+            return PuzzleState(config_copy, self.n, self,"Up", self.cost + 1)
         
         #print("Invalid Move on up")
         return None
@@ -68,7 +70,7 @@ class PuzzleState(object):
             new_blank_index = self.blank_index + self.n
             config_copy[self.blank_index], config_copy[new_blank_index] = config_copy[new_blank_index], config_copy[self.blank_index]
             
-            return PuzzleState(config_copy, self.n, self.config, "Down", self.cost + 1)
+            return PuzzleState(config_copy, self.n, self,"Down", self.cost + 1)
         
         #print("Invalid Move on down")
         return None
@@ -83,7 +85,7 @@ class PuzzleState(object):
             new_blank_index = self.blank_index - 1
             config_copy[self.blank_index], config_copy[new_blank_index] = config_copy[new_blank_index], config_copy[self.blank_index]
 
-            return PuzzleState(config_copy, self.n, self.config, "Left", self.cost + 1)
+            return PuzzleState(config_copy, self.n, self,"Left", self.cost + 1)
 
         #print("Invalid Move on left")
         return None
@@ -98,7 +100,7 @@ class PuzzleState(object):
             new_blank_index = self.blank_index + 1
             config_copy[self.blank_index], config_copy[new_blank_index] = config_copy[new_blank_index], config_copy[self.blank_index]
 
-            return PuzzleState(config_copy, self.n, self.config, "Right", self.cost + 1)
+            return PuzzleState(config_copy, self.n, self,"Right", self.cost + 1)
 
         #print("Invalid Move on right")
         return None
@@ -124,48 +126,73 @@ class PuzzleState(object):
 # Function that Writes to output.txt
 
 ### Students need to change the method to have the corresponding parameters
-def writeOutput(path_to_goal, cost_of_path, nodes_expanded, search_depth, max_search_depth, running_time, max_ram_usage):
+def writeOutput(state, depth, nodes, running_time, max_ram_usage):
+    curr_state = state
+    path_to_goal = []
+    cost_of_path = state.cost
+    nodes_expanded = nodes
+    search_depth = 0
+    max_search_depth = depth
+    while curr_state is not None:
+        if curr_state.action != "Initial":
+            path_to_goal.append(curr_state.action)
+        curr_state = curr_state.parent
+    path_to_goal.reverse()
+    search_depth = len(path_to_goal)
+
+    print("Path_to_goal: ", path_to_goal)
+    print("cost_of_path: ", cost_of_path)
+    print("nodes_expanded: ", nodes_expanded)
+    print("Search Depth: ", search_depth)
+    print("max_search_depth: ", max_search_depth)
+    print("running_time: ", running_time)
+    print("max_ram_usage: ", max_ram_usage)
+
     file_name = "output.txt"
     with open(file_name, "w") as file:
-        file.write(f"path to goal: {path_to_goal}\n")
-        file.write(f"cost of path: {cost_of_path}\n")
-        file.write(f"nodes expanded: {nodes_expanded}\n")
-        file.write(f"search depth: {search_depth}\n")
-        file.write(f"max search depth: {max_search_depth}\n")
-        file.write(f"running time: {running_time:.8f}\n")
-        file.write(f"max ram usage: {max_ram_usage:.8f}\n")
+        file.write(f"path_to_goal: {path_to_goal}\n")
+        file.write(f"cost_of_path: {cost_of_path}\n")
+        file.write(f"nodes_expanded: {nodes_expanded}\n")
+        file.write(f"search_depth: {search_depth}\n")
+        file.write(f"max_search_depth: {max_search_depth}\n")
+        file.write(f"running_time: {running_time:.8f}\n")
+        file.write(f"max_ram_usage: {max_ram_usage:.8f}\n")
     
-
 def bfs_search(initial_state):
     """BFS search"""
     ### STUDENT CODE GOES HERE ###
     frontier = Q.Queue()
-    frontier.put(initial_state)
+    frontier_config = set()
+    frontier.put((initial_state, 0)) #queue set as tuple (state, depth)
+    frontier_config.add(tuple(initial_state.config)) #Initializing tuple to hold the config and the state. Runs on O(1)
     explored = set()
-
+    max_depth = 0
+    nodes_expanded = 0
+    
     while not frontier.empty():
-        state = frontier.get()
+        state_depth = frontier.get() #dequeue tuple (state, depth)
+        state = state_depth[0]
+        curr_depth = state_depth[1]
         explored.add(state)
 
         if test_goal(state) == True:
-            return state
-        
-        child  = state.expand()
+            return state, max_depth, nodes_expanded
+          
+        child = state.expand()
+        nodes_expanded += 1
         for neighbor in child:
-            if neighbor not in frontier.queue and neighbor not in explored:
-                frontier.put(neighbor)
-
+            neighbor_config = tuple(neighbor.config)
+            if neighbor_config not in frontier_config and neighbor_config not in explored:
+                frontier.put((neighbor, curr_depth + 1)) #Increment depth by 1
+                frontier_config.add(neighbor_config)
+                max_depth = max(max_depth, curr_depth + 1) #Update the max_depth
     return None
+
         
-    
-    
-
-
-
 def dfs_search(initial_state):
     """DFS search"""
     ### STUDENT CODE GOES HERE ###
-    bfs_search(initial_state)
+    pass
 
 def A_star_search(initial_state):
     """A * search"""
@@ -190,7 +217,7 @@ def test_goal(puzzle_state):
     if goal_list == config_copy:
         return True
     
-    return
+    return False
 
 # Main Function that reads in Input and Runs corresponding Algorithm
 def main():
@@ -200,15 +227,24 @@ def main():
     board_size  = int(math.sqrt(len(begin_state)))
     hard_state  = PuzzleState(begin_state, board_size)
     start_time  = time.time()
+
+    dfs_start_ram = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     
-    if   search_mode == "bfs": bfs_search(hard_state)
-    elif search_mode == "dfs": dfs_search(hard_state)
-    elif search_mode == "ast": A_star_search(hard_state)
+    if   search_mode == "bfs": state, max_depth, nodes_expanded = bfs_search(hard_state)
+    elif search_mode == "dfs": state, max_depth, nodes_expanded = dfs_search(hard_state)
+    elif search_mode == "ast": state, max_depth, nodes_expanded = A_star_search(hard_state)
     else: 
         print("Enter valid command arguments !")
-        
+
+    dfs_ram = (resource.getrusage(resource.RUSAGE_SELF).ru_maxrss-dfs_start_ram)/(2**2) 
+    
     end_time = time.time()
     print("Program completed in %.3f second(s)"%(end_time-start_time))
+
+    running_time = end_time-start_time
+
+    
+    writeOutput(state, max_depth, nodes_expanded, running_time, dfs_ram)
 
 if __name__ == '__main__':
     main()
