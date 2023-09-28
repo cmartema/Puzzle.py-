@@ -140,13 +140,13 @@ def writeOutput(state, depth, nodes, running_time, max_ram_usage):
     path_to_goal.reverse()
     search_depth = len(path_to_goal)
 
-    print("Path_to_goal: ", path_to_goal)
-    print("cost_of_path: ", cost_of_path)
-    print("nodes_expanded: ", nodes_expanded)
-    print("Search Depth: ", search_depth)
-    print("max_search_depth: ", max_search_depth)
-    print("running_time: ", running_time)
-    print("max_ram_usage: ", max_ram_usage)
+    print("Path_to_goal:", path_to_goal)
+    print("cost_of_path:", cost_of_path)
+    print("nodes_expanded:", nodes_expanded)
+    print("Search Depth:", search_depth)
+    print("max_search_depth:", max_search_depth)
+    print("running_time:", running_time)
+    print("max_ram_usage:", max_ram_usage)
 
     file_name = "output.txt"
     with open(file_name, "w") as file:
