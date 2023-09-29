@@ -147,7 +147,10 @@ def writeOutput(state, depth, nodes, running_time, max_ram_usage):
     print("max_search_depth:", max_search_depth)
     print("running_time:", running_time)
     print("max_ram_usage:", max_ram_usage)
+   
 
+#Fix this before submission
+    '''
     file_name = "output.txt"
     with open(file_name, "w") as file:
         file.write(f"path_to_goal: {path_to_goal}\n")
@@ -157,6 +160,7 @@ def writeOutput(state, depth, nodes, running_time, max_ram_usage):
         file.write(f"max_search_depth: {max_search_depth}\n")
         file.write(f"running_time: {running_time:.8f}\n")
         file.write(f"max_ram_usage: {max_ram_usage:.8f}\n")
+        '''
     
 def bfs_search(initial_state):
     """BFS search"""
@@ -188,26 +192,102 @@ def bfs_search(initial_state):
                 max_depth = max(max_depth, curr_depth + 1) #Update the max_depth
     return None
 
-        
 def dfs_search(initial_state):
     """DFS search"""
     ### STUDENT CODE GOES HERE ###
-    pass
+    frontier = [] #Using a list a stack
+    frontier_config = set()
+    frontier.append((initial_state, 0)) #queue set as tuple (state, depth)
+    frontier_config.add(tuple(initial_state.config)) #Initializing tuple to hold the config and the state. Runs on O(1)
+    explored = set()
+    max_depth = 0
+    nodes_expanded = 0
+
+    while frontier:
+        state_depth = frontier.pop() #LIFO order
+        state = state_depth[0]
+        curr_depth = state_depth[1]
+        explored.add(tuple(state.config))#Store configuration as a tuple in the explored set
+        if test_goal(state) == True:
+            return state, max_depth, nodes_expanded
+        
+        child = state.expand()
+        child.reverse() #We have reverse the order to explore right, left, down, up (account for the stack)
+        nodes_expanded += 1
+        for neighbor in child:
+            neighbor_config = tuple(neighbor.config)
+            if neighbor_config not in frontier_config and neighbor_config not in explored:
+                frontier.append((neighbor, curr_depth + 1))
+                frontier_config.add(neighbor_config)
+                max_depth = max(max_depth, curr_depth + 1)
+
+    return None
 
 def A_star_search(initial_state):
     """A * search"""
     ### STUDENT CODE GOES HERE ###
-    pass
+    frontier = []
+    frontier_config = set()
+    frontier.append((initial_state, 0))
+    frontier_config.add(tuple(initial_state.config))
+    explored = set()
+    max_depth = 0
+    nodes_expanded = 0
+
+    while frontier:
+       
+        state_depth = frontier.pop(0)#state with lowest estimated cost
+
+         #sort by cost in acending order. pop provides the mininmum state (equivalent to a heap)
+         #Sort the frontier based on the total estimated cost f(n)
+        frontier.sort(key=lambda state: calculate_total_cost(state_depth[0])) 
+        
+        state = state_depth[0]
+        curr_depth = state_depth[1]
+        explored.add(tuple(state.config))
+
+        if test_goal(state) == True:
+            return state, max_depth, nodes_expanded
+        
+        child = state.expand()
+        nodes_expanded += 1
+        for neighbor in child:
+            neighbor_config = tuple(neighbor.config)
+            if neighbor_config not in frontier_config and neighbor_config not in explored:
+                frontier.append((neighbor, curr_depth + 1))
+                frontier_config.add(neighbor_config)
+                max_depth = max(max_depth, curr_depth + 1)
+
+            elif neighbor_config in frontier:
+                #Find the existing state in frontier with the same configuration
+                #Compare the total cost of the existing state and the new neighbor
+                #Replace the existing state with the new neighbor
+                existing_state = next(s for s in frontier if tuple(s.config) == neighbor_config)
+                if calculate_total_cost(neighbor) < calculate_total_cost(existing_state):
+                    frontier.remove(existing_state)
+                    frontier.append((neighbor, curr_depth + 1))
+                    frontier_config.add(neighbor_config)
+                    max_depth = max(max_depth, curr_depth + 1)
+    return None
+
+
 
 def calculate_total_cost(state):
     """calculate the total estimated cost of a state"""
     ### STUDENT CODE GOES HERE ###
-    pass
+    return state.cost + calculate_manhattan_dist(state.blank_index, state.config[state.blank_index], state.n)
+
 
 def calculate_manhattan_dist(idx, value, n):
     """calculate the manhattan distance of a tile"""
     ### STUDENT CODE GOES HERE ###
-    pass
+    if value == 0:
+        return 0  
+    target_row = value // n
+    target_col = value % n
+    current_row = idx // n
+    current_col = idx % n
+    return abs(target_row - current_row) + abs(target_col - current_col)
 
 def test_goal(puzzle_state):
     """test the state is the goal state or not"""
