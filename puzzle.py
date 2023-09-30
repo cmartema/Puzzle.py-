@@ -15,8 +15,6 @@ class PuzzleState(object):
 
     def __lt__(self, other):
         return (self.cost + calculate_total_cost(self)) < (other.cost + calculate_total_cost(other))
-    def __eq__(self, other):
-        return self.config == other.config
     def __hash__(self):
         return hash(tuple(self.config))
 
@@ -147,17 +145,7 @@ def writeOutput(state, depth, nodes, running_time, max_ram_usage):
     running_time = round(running_time, 8)
     max_ram_usage = round(max_ram_usage, 8)
 
-    print("Path_to_goal:", path_to_goal)
-    print("cost_of_path:", cost_of_path)
-    print("nodes_expanded:", nodes_expanded)
-    print("Search Depth:", search_depth)
-    print("max_search_depth:", max_search_depth)
-    print("running_time:", running_time)
-    print("max_ram_usage:", max_ram_usage)
-   
-
 #Fix this before submission
-    '''
     file_name = "output.txt"
     with open(file_name, "w") as file:
         file.write(f"path_to_goal: {path_to_goal}\n")
@@ -167,7 +155,6 @@ def writeOutput(state, depth, nodes, running_time, max_ram_usage):
         file.write(f"max_search_depth: {max_search_depth}\n")
         file.write(f"running_time: {running_time:.8f}\n")
         file.write(f"max_ram_usage: {max_ram_usage:.8f}\n")
-    '''
     
 def bfs_search(initial_state):
     """BFS search"""
@@ -250,7 +237,6 @@ def A_star_search(initial_state):
 
 
         if test_goal(state) == True:
-            print("max_depth @ testgoal", max_depth)
             return state, max_depth, nodes_expanded
         
         child = state.expand()
@@ -261,7 +247,6 @@ def A_star_search(initial_state):
                 frontier.put((neighbor, neighbor.cost + calculate_total_cost(neighbor)))
                 frontier_config.add(tuple(neighbor.config))
                 max_depth = max(max_depth, neighbor.cost)
-                #print("max_depth:", max_depth)
 
             elif tuple(neighbor.config) in frontier_config:
                 #decreases the key
@@ -282,7 +267,6 @@ def calculate_total_cost(state):
     total_cost = 0
     for i in state.config:
         total_cost += calculate_manhattan_dist(i, state.config[i], state.n)
-
     return total_cost
 
 
@@ -303,7 +287,6 @@ def test_goal(puzzle_state):
     config_copy = puzzle_state.config[:]
     if goal_list == config_copy:
         return True
-    
     return False
 
 # Main Function that reads in Input and Runs corresponding Algorithm
