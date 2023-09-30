@@ -12,10 +12,14 @@ import resource
 #### SKELETON CODE ####
 ## The Class that Represents the Puzzle
 class PuzzleState(object):
-    """
-        The PuzzleState stores a board configuration and implements
-        movement instructions to generate valid children.
-    """
+
+    def __lt__(self, other):
+        return (self.cost + calculate_total_cost(self)) < (other.cost + calculate_total_cost(other))
+    def __eq__(self, other):
+        return self.config == other.config
+    def __hash__(self):
+        return hash(tuple(self.config))
+
     def __init__(self, config, n, parent=None, action="Initial", cost=0):
         """
         :param config->List : Represents the n*n board, for e.g. [0,1,2,3,4,5,6,7,8] represents the goal state.
@@ -140,6 +144,9 @@ def writeOutput(state, depth, nodes, running_time, max_ram_usage):
     path_to_goal.reverse()
     search_depth = len(path_to_goal)
 
+    running_time = round(running_time, 8)
+    max_ram_usage = round(max_ram_usage, 8)
+
     print("Path_to_goal:", path_to_goal)
     print("cost_of_path:", cost_of_path)
     print("nodes_expanded:", nodes_expanded)
@@ -160,7 +167,7 @@ def writeOutput(state, depth, nodes, running_time, max_ram_usage):
         file.write(f"max_search_depth: {max_search_depth}\n")
         file.write(f"running_time: {running_time:.8f}\n")
         file.write(f"max_ram_usage: {max_ram_usage:.8f}\n")
-        '''
+    '''
     
 def bfs_search(initial_state):
     """BFS search"""
@@ -182,7 +189,7 @@ def bfs_search(initial_state):
         if test_goal(state) == True:
             return state, max_depth, nodes_expanded
           
-        child = state.expand()
+        child = state.expand() #list containing all children
         nodes_expanded += 1
         for neighbor in child:
             neighbor_config = tuple(neighbor.config)
@@ -211,7 +218,7 @@ def dfs_search(initial_state):
         if test_goal(state) == True:
             return state, max_depth, nodes_expanded
         
-        child = state.expand()
+        child = state.expand() #list containing all children
         child.reverse() #We have reverse the order to explore right, left, down, up (account for the stack)
         nodes_expanded += 1
         for neighbor in child:
@@ -226,68 +233,68 @@ def dfs_search(initial_state):
 def A_star_search(initial_state):
     """A * search"""
     ### STUDENT CODE GOES HERE ###
-    frontier = []
+    frontier = Q.PriorityQueue()
+    frontier.put((initial_state, initial_state.cost+calculate_total_cost(initial_state)))
     frontier_config = set()
-    frontier.append((initial_state, 0))
     frontier_config.add(tuple(initial_state.config))
     explored = set()
+    explored_config = set()
     max_depth = 0
     nodes_expanded = 0
 
-    while frontier:
-       
-        state_depth = frontier.pop(0)#state with lowest estimated cost
+    while not frontier.empty():
+        state_tuple = frontier.get()
+        state = state_tuple[0]
+        explored.add(state)
+        explored_config.add(tuple(state.config))
 
-         #sort by cost in acending order. pop provides the mininmum state (equivalent to a heap)
-         #Sort the frontier based on the total estimated cost f(n)
-        frontier.sort(key=lambda state: calculate_total_cost(state_depth[0])) 
-        
-        state = state_depth[0]
-        curr_depth = state_depth[1]
-        explored.add(tuple(state.config))
 
         if test_goal(state) == True:
+            print("max_depth @ testgoal", max_depth)
             return state, max_depth, nodes_expanded
         
         child = state.expand()
         nodes_expanded += 1
         for neighbor in child:
             neighbor_config = tuple(neighbor.config)
-            if neighbor_config not in frontier_config and neighbor_config not in explored:
-                frontier.append((neighbor, curr_depth + 1))
-                frontier_config.add(neighbor_config)
-                max_depth = max(max_depth, curr_depth + 1)
+            if  neighbor_config not in frontier_config and neighbor_config not in explored_config:
+                frontier.put((neighbor, neighbor.cost + calculate_total_cost(neighbor)))
+                frontier_config.add(tuple(neighbor.config))
+                max_depth = max(max_depth, neighbor.cost)
+                #print("max_depth:", max_depth)
 
-            elif neighbor_config in frontier:
-                #Find the existing state in frontier with the same configuration
-                #Compare the total cost of the existing state and the new neighbor
-                #Replace the existing state with the new neighbor
-                existing_state = next(s for s in frontier if tuple(s.config) == neighbor_config)
-                if calculate_total_cost(neighbor) < calculate_total_cost(existing_state):
-                    frontier.remove(existing_state)
-                    frontier.append((neighbor, curr_depth + 1))
-                    frontier_config.add(neighbor_config)
-                    max_depth = max(max_depth, curr_depth + 1)
+            elif tuple(neighbor.config) in frontier_config:
+                #decreases the key
+                for idx in frontier.queue:
+                    if idx[0].config == neighbor.config:
+                        existing_priority = idx[1]
+                        new_priority = neighbor.cost + calculate_total_cost(neighbor)
+                        # If the new priority is lower, update the priority queue
+                        if new_priority < existing_priority:
+                            frontier.queue.remove(idx)
+                            frontier.put((neighbor, new_priority))
     return None
-
 
 
 def calculate_total_cost(state):
     """calculate the total estimated cost of a state"""
     ### STUDENT CODE GOES HERE ###
-    return state.cost + calculate_manhattan_dist(state.blank_index, state.config[state.blank_index], state.n)
+    total_cost = 0
+    for i in state.config:
+        total_cost += calculate_manhattan_dist(i, state.config[i], state.n)
+
+    return total_cost
 
 
 def calculate_manhattan_dist(idx, value, n):
     """calculate the manhattan distance of a tile"""
     ### STUDENT CODE GOES HERE ###
-    if value == 0:
-        return 0  
-    target_row = value // n
-    target_col = value % n
-    current_row = idx // n
-    current_col = idx % n
-    return abs(target_row - current_row) + abs(target_col - current_col)
+    c1 = idx % n 
+    c2 = value % n
+    r1 = int(idx / n)
+    r2 = int(value / n)
+   
+    return abs(c1 - c2) + abs(r1 - r2)
 
 def test_goal(puzzle_state):
     """test the state is the goal state or not"""
@@ -312,7 +319,7 @@ def main():
     
     if   search_mode == "bfs": state, max_depth, nodes_expanded = bfs_search(hard_state)
     elif search_mode == "dfs": state, max_depth, nodes_expanded = dfs_search(hard_state)
-    elif search_mode == "ast": state, max_depth, nodes_expanded = A_star_search(hard_state)
+    elif search_mode == "ast": state, max_depth, nodes_expanded = A_star_search(hard_state) 
     else: 
         print("Enter valid command arguments !")
 
